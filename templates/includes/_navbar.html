@@ -15,9 +15,21 @@
           <li>
             <a class="nav-link" href="/articles">Articles</a>
           </li>
-          <li>
-            <a class="nav-link" href="/register">Register</a>
-          </li>
+          {% if session.logged_in %}
+            <li>
+              <a class="nav-link" href="/logout">Logout</a>
+            </li>
+            <li>
+              <a class="nav-link" href="/dashboard">Dashboard</a>
+            </li>
+          {% else %}
+            <li>
+              <a class="nav-link" href="/register">Register</a>
+            </li>
+            <li>
+              <a class="nav-link" href="/login">Login</a>
+            </li>
+          {% endif %}
         </ul>
       </div>
     </div>

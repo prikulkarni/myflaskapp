@@ -3,6 +3,7 @@ from data import Articles
 from flask_sqlalchemy import SQLAlchemy
 from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from passlib.hash import sha256_crypt
+from functools import wraps
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://postgres:linux123@localhost/testdb'
@@ -26,7 +27,7 @@ class User(db.Model):
         self.password = password
 
     def __repr__(self):
-        return '<id {}>'.format(self.id)
+        return '<password {}>'.format(self.password)
 
 
 @app.route('/')
@@ -76,8 +77,45 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password_candidate = request.form['password']
+        user = User.query.filter_by(username=username).one_or_none()
+        if user != None:
+            pwd = user.password
+            if sha256_crypt.verify(password_candidate, pwd):
+                #Passes
+                session['logged_in'] = True
+                session['username'] = username
+
+                flash('You are now logged in', 'success')
+                return redirect(url_for('dashboard'))
+            else:
+                error = 'Invalid Password'
+                return render_template('login.html', error=error)
+        else:
+            error = 'Username not found'
+            return render_template('login.html', error=error)
 
     return render_template('login.html')
+
+def is_logged_in(f):
+    @wraps(f)
+    def wrap(*args, **kwargs):
+        if 'logged_in' in session:
+            return f(*args, **kwargs)
+        else:
+            flash('Unauthorised. Please Login', 'danger')
+            return redirect(url_for('login'))
+    return wrap
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('You are now logged out', 'success')
+    return redirect(url_for('index'))
+
+@app.route('/dashboard')
+@is_logged_in
+def dashboard():
+    return render_template('dashboard.html')
 
 if __name__ == '__main__':
     app.run(debug=True)

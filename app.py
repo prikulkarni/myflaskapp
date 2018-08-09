@@ -1,5 +1,5 @@
 from flask import Flask, render_template, flash, redirect, url_for, request, session, logging
-from data import Articles
+#from data import Articles
 from flask_sqlalchemy import SQLAlchemy
 from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from passlib.hash import sha256_crypt
@@ -10,7 +10,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://postgres:linux123
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'change'
 db = SQLAlchemy(app)
-Articles = Articles()
+#Articles = Articles()
 
 class User(db.Model):
     __tablename__ = "users"
@@ -27,8 +27,23 @@ class User(db.Model):
         self.password = password
 
     def __repr__(self):
-        return '<password {}>'.format(self.password)
+        return '<id {}>'.format(self.id)
 
+class Article(db.Model):
+    __tablename__ = "articles"
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String, nullable=False)
+    author = db.Column(db.String, nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    create_date = db.Column(db.DateTime)
+
+    def __init__(self, title, author, body):
+        self.title =  title
+        self.author = author
+        self.body = body
+
+    def __repr__(self):
+        return '<id {}>'.format(self.id)
 
 @app.route('/')
 def index():
@@ -40,11 +55,20 @@ def about():
 
 @app.route('/articles')
 def articles():
-    return render_template('articles.html', articles=Articles)
+    #Get Articles
+    articles = Article.query.all()
+    if (articles != None):
+        return render_template('articles.html', articles=articles)
+    else:
+        msg = "No articles yet"
+        return render_template('articles.html', msg=msg)
 
+#Single Article
 @app.route('/article/<string:id>/')
 def article(id):
-    return render_template('article.html', id=id)
+    #Get Single Article
+    article = Article.query.filter_by(id=id).one()
+    return render_template('article.html', article=article)
 
 class RegisterForm(Form):
     name = StringField('Name', [validators.Length(min=1, max=50)])
@@ -107,6 +131,7 @@ def is_logged_in(f):
     return wrap
 
 @app.route('/logout')
+@is_logged_in
 def logout():
     session.clear()
     flash('You are now logged out', 'success')
@@ -115,7 +140,37 @@ def logout():
 @app.route('/dashboard')
 @is_logged_in
 def dashboard():
-    return render_template('dashboard.html')
+    #Get Articles
+    username = session['username']
+    articles = Article.query.filter_by(author=username).all()
+    if (articles != None):
+        return render_template('dashboard.html', articles=articles)
+    else:
+        msg = "No articles written by you yet"
+        return render_template('dashboard.html', msg=msg)
+
+#Article Form Class
+class ArticleForm(Form):
+    title = StringField('Title', [validators.Length(min=1, max=200)])
+    body = TextAreaField('Body', [validators.Length(min=5)])
+
+#Add Article Route
+@app.route('/add_article',methods=['GET', 'POST'])
+@is_logged_in
+def add_article():
+    form = ArticleForm(request.form)
+    if request.method == 'POST' and form.validate():
+        title = form.title.data
+        username = session['username']
+        body = form.body.data
+        art = Article(title, username, body)
+        db.session.add(art)
+        db.session.commit()
+
+        flash('Article Created','success')
+        return redirect(url_for('dashboard'))
+
+    return render_template('add_article.html', form=form)
 
 if __name__ == '__main__':
     app.run(debug=True)

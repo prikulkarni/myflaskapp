@@ -1,6 +1,7 @@
 from flask import Flask, render_template, flash, redirect, url_for, request, session, logging
 #from data import Articles
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.sql import func
 from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from passlib.hash import sha256_crypt
 from functools import wraps
@@ -35,7 +36,7 @@ class Article(db.Model):
     title = db.Column(db.String, nullable=False)
     author = db.Column(db.String, nullable=False)
     body = db.Column(db.Text, nullable=False)
-    create_date = db.Column(db.DateTime)
+    create_date = db.Column(db.DateTime, nullable=False, server_default=func.now())
 
     def __init__(self, title, author, body):
         self.title =  title

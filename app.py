@@ -143,10 +143,11 @@ def dashboard():
     #Get Articles
     username = session['username']
     articles = Article.query.filter_by(author=username).all()
+    #articles = Article.query.all()
     if (articles != None):
         return render_template('dashboard.html', articles=articles)
     else:
-        msg = "No articles written by you yet"
+        msg = "No articles yet"
         return render_template('dashboard.html', msg=msg)
 
 #Article Form Class
@@ -171,6 +172,40 @@ def add_article():
         return redirect(url_for('dashboard'))
 
     return render_template('add_article.html', form=form)
+
+#Edit Article Route
+@app.route('/edit_article/<string:id>',methods=['GET', 'POST'])
+@is_logged_in
+def edit_article(id):
+    #Get Article by id
+    article = Article.query.filter_by(id=id).one()
+    #Get form
+    form = ArticleForm(request.form)
+    #Populate article form fields
+    form.title.data = article.title
+    form.body.data = article.body
+    if request.method == 'POST' and form.validate():
+        article.title = request.form['title']
+        #article.username = session['username']
+        article.body = request.form['body']
+        #art = Article(title, username, body)
+        #db.session.add(art)
+        db.session.commit()
+
+        flash('Article Updated','success')
+        return redirect(url_for('dashboard'))
+
+    return render_template('edit_article.html', form=form)
+
+#Delete Article Route
+@app.route('/delete_article/<string:id>',methods=['GET','POST'])
+@is_logged_in
+def delete_article(id):
+    article = Article.query.filter_by(id=id).one()
+    db.session.delete(article)
+    db.session.commit()
+    flash('Article Deleted','success')
+    return redirect(url_for('dashboard'))
 
 if __name__ == '__main__':
     app.run(debug=True)

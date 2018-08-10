@@ -1,6 +1,6 @@
 <nav class="navbar navbar-default">
 
-      <div class="container">
+      <div class="container-fluid">
       <div class="navbar-header">
           <a class="navbar-brand" href="#">MyFlaskApp</a>
       </div>
@@ -15,6 +15,8 @@
           <li>
             <a class="nav-link" href="/articles">Articles</a>
           </li>
+        </ul>
+        <ul class="nav navbar-nav navbar-right">
           {% if session.logged_in %}
             <li>
               <a class="nav-link" href="/logout">Logout</a>

@@ -6,6 +6,12 @@ from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from passlib.hash import sha256_crypt
 from functools import wraps
 
+import json
+import plotly
+
+import pandas as pd
+import numpy as np
+
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://postgres:linux123@localhost/testdb'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -58,7 +64,14 @@ def about():
 def articles():
     #Get Articles
     articles = Article.query.all()
+    #plotly ex
+    # authors = Article.author.distinct()
+    # count = Article.author.(func.count()).group_by()
+    # graph = dict(data=[dict(x=df['authors'],y=df['count'],type='bar'),],layout=dict(title='graph')),
+    # graphJSON = json.dumps(graphs, cls=plotly.utils.PlotlyJSONEncoder)
+
     if (articles != None):
+        #return render_template('articles.html', articles=articles, graphJSON=graphJSON)
         return render_template('articles.html', articles=articles)
     else:
         msg = "No articles yet"
@@ -141,12 +154,62 @@ def logout():
 @app.route('/dashboard')
 @is_logged_in
 def dashboard():
+    #plotly demo
+    rng = pd.date_range('1/1/2011', periods=7500, freq='H')
+    ts = pd.Series(np.random.randn(len(rng)), index=rng)
+
+    graphs = [
+        dict(
+            data=[
+                dict(
+                    x=[1, 2, 3],
+                    y=[10, 20, 30],
+                    type='scatter'
+                ),
+            ],
+            layout=dict(
+                title='first graph'
+            )
+        ),
+
+        dict(
+            data=[
+                dict(
+                    x=[1, 3, 5],
+                    y=[10, 50, 30],
+                    type='bar'
+                ),
+            ],
+            layout=dict(
+                title='second graph'
+            )
+        ),
+
+        dict(
+            data=[
+                dict(
+                    x=ts.index,  # Can use the pandas data structures directly
+                    y=ts
+                )
+            ]
+        )
+    ]
+
+    # Add "ids" to each of the graphs to pass up to the client
+    # for templating
+    ids = ['graph-{}'.format(i) for i, _ in enumerate(graphs)]
+
+    # Convert the figures to JSON
+    # PlotlyJSONEncoder appropriately converts pandas, datetime, etc
+    # objects to their JSON equivalents
+    graphJSON = json.dumps(graphs, cls=plotly.utils.PlotlyJSONEncoder)
+
     #Get Articles
     username = session['username']
     articles = Article.query.filter_by(author=username).all()
     #articles = Article.query.all()
     if (articles != None):
-        return render_template('dashboard.html', articles=articles)
+        return render_template('dashboard.html', articles=articles, ids=ids, graphJSON=graphJSON)
     else:
         msg = "No articles yet"
         return render_template('dashboard.html', msg=msg)
